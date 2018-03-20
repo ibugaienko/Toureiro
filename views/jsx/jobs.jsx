@@ -167,7 +167,7 @@ var JobDetails = React.createClass({
     var _this = this;
     var id = $(this.refs.idField.getDOMNode()).val()
     if (id) {
-      $.get('/job/', {
+      $.get('job/', {
         queue: this.props.queue,
         id: id
       }, function(response) {
