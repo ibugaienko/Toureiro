@@ -5,6 +5,7 @@ var $ = require('jquery');
 var Sidebar = require('./sidebar.jsx');
 var Jobs = require('./jobs.jsx').Jobs;
 var JobDetails = require('./jobs.jsx').JobDetails;
+var AddJob = require('./jobs.jsx').AddJob;
 
 var Toureiro = React.createClass({
 
@@ -40,6 +41,16 @@ var Toureiro = React.createClass({
     });
   },
 
+  renderMainContent: function() {
+    var _this = this;
+    if (_this.state.category === 'job') {
+      return (<JobDetails queue={_this.state.queue} readonly={_this.state.readonly} />);
+    } else if (_this.state.category === 'new-job') {
+      return (<AddJob queue={_this.state.queue} />);
+    }
+    return (<Jobs ref="jobs" queue={_this.state.queue} category={this.state.category} readonly={_this.state.readonly} />);
+  },
+
   render: function() {
     var _this = this;
     return (
@@ -47,13 +58,8 @@ var Toureiro = React.createClass({
         <Sidebar onQueueChange={this.handleQueueChange} onCategoryChange={this.handleCategoryChange} readonlyLink={this.linkState('readonly')} />
         <div id="toureiro-canvas">
         {
-          (_this.state.queue && _this.state.category) ? (
-            (_this.state.category === 'job') ? (
-              <JobDetails queue={_this.state.queue} readonly={_this.state.readonly} />
-            ) : (
-              <Jobs ref="jobs" queue={_this.state.queue} category={this.state.category} readonly={_this.state.readonly} />
-            )
-          ) : ''
+          (_this.state.queue && _this.state.category) ?
+            this.renderMainContent() : ''
         }
         </div>
       </div>

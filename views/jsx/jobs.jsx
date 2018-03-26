@@ -2,8 +2,24 @@ var React = require('react');
 var $ = require('jquery');
 var moment = require('moment-timezone');
 var hljs = require('highlight.js');
+var isInteger = require('lodash/isInteger');
+var isEqual = require('lodash/isEqual');
 
 var Pagination = require('./pagination.jsx');
+
+var isJsonObject = function(value) {
+  if (value == undefined) return true;
+  if (typeof value === "string" && value.length === 0) return true;
+
+  var parsed;
+  try {
+    parsed = JSON.parse(value);
+  }
+  catch (e) {
+    return false;
+  }
+  return parsed && typeof parsed === "object";
+}
 
 var Job = React.createClass({
 
@@ -145,6 +161,142 @@ var Job = React.createClass({
     );
   }
 
+});
+
+var AddJob = React.createClass({
+
+  getInitialState: function() {
+    var state = this.reset();
+    return state;
+  },
+
+  handleChange: function(event) {
+    this.state[event.target.name] = event.target.value;
+    this.setState(this.state);
+  },
+
+  reset: function() {
+    return {
+      data: "",
+      delayMillis: 1000, // 1 second
+      attempts: 25,
+      backoff: 5 * 60 * 1000, // 5 minutes
+      backoffType: 'exponential',
+      newJobId: null
+    };
+  },
+
+  validate: function(event) {
+    var canSubmit;
+    switch (event.target.name) {
+      case 'delayMillis':
+      case 'attempts':
+      case 'backoff':
+        canSubmit = isInteger(parseInt(event.target.value, 10));
+        break;
+      case 'data':
+        canSubmit = isJsonObject(event.target.value);
+        break;
+      case 'backoffType':
+        canSubmit = event.target.value === 'exponential' || event.target.value === 'fixed';
+        break;
+      default:
+        throw new Error("Unknown input type.");
+    }
+    if (canSubmit) {
+      this.refs[event.target.name].classList.remove("has-error");
+    } else {
+      this.refs[event.target.name].classList.add("has-error");
+    }
+    this.forceUpdate();
+  },
+
+  isReadyToSubmit: function() {
+    var _this = this;
+    return Object.keys(this.refs).reduce(function(acc, elt) {
+      return acc && !_this.refs[elt].classList.contains("has-error");
+    }, true);
+  },
+
+  submit: function() {
+    var data = this.state.data;
+    var _this = this;
+    if (data === undefined || data.length === 0) {
+      data = {};
+    } else {
+      data = JSON.parse(data);
+    }
+    $.ajax({
+        url: "queue/" + _this.props.queue + "/new",
+        type: "POST",
+        data: JSON.stringify({
+          data: data,
+          opts: {
+            delay: _this.state.delayMillis,
+            attempts: _this.state.attempts,
+            backoff: {
+              type: _this.state.backoffType,
+              delay: _this.state.backoff
+            }
+          }
+        }),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function(response) {
+          if (response.status === 'OK') {
+            var state = _this.reset();
+            state.newJobId = response.jobId;
+            _this.setState(state);
+          } else {
+            console.log(response);
+            alert(response.message);
+          }
+        }
+    });
+  },
+
+  render: function() {
+    return (
+      <div className="toureiro-jobs">
+        <h4 className="header">New Job</h4>
+        <div className="container-fluid">
+          <div className="row job-top-buffer">
+            <div ref="delayMillis" className="form-group col-xs-3">
+              <label htmlFor="delayMillis">Delay Millis:</label>
+              <input className="form-control" type="text" name="delayMillis" onBlur={this.validate} onChange={this.handleChange} value={this.state.delayMillis} />
+            </div>
+            <div ref="attempts" className="form-group col-xs-3">
+              <label htmlFor="attempts">Attempts Limit:</label>
+              <input className="form-control" type="text" name="attempts" onBlur={this.validate} onChange={this.handleChange} value={this.state.attempts} />
+            </div>
+            <div ref="backoff" className="form-group col-xs-3">
+              <label htmlFor="backoff">Backoff Millis:</label>
+              <input className="form-control" type="text" name="backoff" onBlur={this.validate} onChange={this.handleChange} value={this.state.backoff} />
+            </div>
+            <div ref="backoffType" className="form-group col-xs-3">
+              <label htmlFor="backoffType">Backoff Type:</label>
+              <select className="form-control" name="backoffType" onBlur={this.validate} onChange={this.handleChange}>
+                <option value="exponential">exponential</option>
+                <option value="fixed">fixed</option>
+              </select>
+            </div>
+          </div>
+          <div className="row job-top-buffer">
+            <div ref="data" className="form-group col-xs-12">
+              <label htmlFor="data">Job Data:</label>
+              <textarea className="form-control" rows={10} name="data" onBlur={this.validate} onChange={this.handleChange} value={this.state.data} />
+            </div>
+          </div>
+          <div className="row job-top-buffer">
+            <div className="col-xs-12">
+              { this.state.newJobId ? (<label className="col-xs-3">Created a new job with id: {this.state.newJobId}</label>) : '' }
+              <button disabled={!this.isReadyToSubmit()} onClick={this.submit} className={"btn btn-success col-xs-3 " + (this.state.newJobId ? "col-xs-offset-6" : "col-xs-offset-9")}>Create</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 });
 
 var JobDetails = React.createClass({
@@ -307,3 +459,4 @@ var ToureiroJobs = React.createClass({
 
 module.exports.JobDetails = JobDetails;
 module.exports.Jobs = ToureiroJobs;
+module.exports.AddJob = AddJob;
