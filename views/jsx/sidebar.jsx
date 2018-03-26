@@ -130,6 +130,9 @@ ToureiroSidebar = React.createClass({
           <div className="sidebar-stat">
             <a href="javascript:;" onClick={_this.changeCategory.bind(_this, 'job')}>Job Details</a>
           </div>
+          <div className="sidebar-stat">
+            <a href="javascript:;" onClick={_this.changeCategory.bind(_this, 'new-job')}>New Job</a>
+          </div>
         </div>
         <div className="sidebar-controls">
           <div>
