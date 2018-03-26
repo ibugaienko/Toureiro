@@ -1,10 +1,9 @@
-var _ = require('lodash');
 var bull = require('bull');
 var chai = require('chai');
 var expect = chai.expect;
 var Promise = require('bluebird');
 var redis = require('redis');
-var uuid = require('node-uuid');
+var uuid = require('uuid/v4');
 var request = require('supertest');
 
 var client = Promise.promisifyAll(redis.createClient());
