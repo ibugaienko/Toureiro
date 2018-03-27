@@ -436,11 +436,29 @@ var ToureiroJobs = React.createClass({
     this.fetchJobs();
   },
 
+  handleFlush: function() {
+    var _this = this;
+    if (confirm("Are you sure you want to remove all " + this.props.category + " jobs ?")) {
+      $.post("queue/flush/", {
+        queue: _this.props.queue,
+        category: _this.props.category
+      }, function(response) {
+        if (response.status === 'OK') {
+          _this.handleJobUpdate();
+        } else {
+          console.log(response);
+          alert(response.message);
+        }
+      });
+    }
+  },
+
   render: function() {
     var _this = this;
     return (
       <div className="toureiro-jobs">
         <h4 className="header">{this.props.category[0].toUpperCase() + this.props.category.slice(1)} Jobs</h4>
+        <button className="btn btn-primary" onClick={this.handleFlush} style={{marginLeft: "20px"}}>Flush {this.props.category} jobs</button>
         <div ref="jobs">
           {
             this.state.jobs.map(function(job) {
